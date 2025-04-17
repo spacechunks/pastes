@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { LANGUAGE_MAP } from '@/lib/language';
+import { toast } from 'sonner';
 
 type ActionButtonProps = {
   icon: React.ReactNode;
@@ -178,6 +179,7 @@ export function useFileSave() {
             break;
           }
         }
+        toast.success('Saved paste');
         navigate(`/${pasteId}.${urlExtension}`);
         // Reset pending state
         setPendingCode(null);
@@ -285,6 +287,7 @@ export function FileActions({
             onClick={() => {
               if (paste) {
                 navigator.clipboard.writeText(paste.data);
+                toast.success('Copied to clipboard');
               }
             }}
             hotkey="c"
