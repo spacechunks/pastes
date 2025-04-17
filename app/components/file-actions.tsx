@@ -16,11 +16,27 @@ type ActionButtonProps = {
   onClick?: () => void;
   hotkey?: string;
   to?: string;
+  hardRefresh?: boolean;
 };
 
-function ActionButton({ icon, label, onClick, hotkey, to }: ActionButtonProps) {
+function ActionButton({
+  icon,
+  label,
+  onClick,
+  hotkey,
+  to,
+  hardRefresh,
+}: ActionButtonProps) {
   const linkRef = useRef<HTMLAnchorElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleNavigation = () => {
+    if (hardRefresh && to) {
+      window.location.href = to;
+    } else if (linkRef.current) {
+      linkRef.current.click();
+    }
+  };
 
   React.useEffect(() => {
     if (!hotkey) return;
@@ -30,21 +46,41 @@ function ActionButton({ icon, label, onClick, hotkey, to }: ActionButtonProps) {
         e.preventDefault();
         if (onClick) {
           onClick();
-        } else if (to && linkRef.current) {
-          linkRef.current.click();
+        } else if (to) {
+          handleNavigation();
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hotkey, onClick, to]);
+  }, [hotkey, onClick, to, hardRefresh]);
 
   const tooltipLabel = hotkey
     ? `${label} (Ctrl + ${hotkey.toUpperCase()})`
     : label;
 
   const buttonContent = <>{icon}</>;
+
+  if (to && hardRefresh) {
+    return (
+      <TooltipProvider>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <a
+              href={to}
+              className="text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-card/80 focus:ring-sidebar-ring/40 flex h-8 w-8 items-center justify-center rounded-md transition-all duration-200 ease-in-out hover:shadow-sm focus:ring-2 focus:outline-none"
+            >
+              {buttonContent}
+            </a>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{tooltipLabel}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -257,6 +293,7 @@ export function FileActions({
             icon={<FileCode size={16} strokeWidth={2} />}
             label="Raw"
             to={paste ? `/raw/${paste.id}.${paste.languageId}` : undefined}
+            hardRefresh
             hotkey="r"
           />
           <ActionButton
