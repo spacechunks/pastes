@@ -20,6 +20,25 @@ type ActionButtonProps = {
   hardRefresh?: boolean;
 };
 
+// Helper to detect platform in a modern, non-deprecated way
+function getPlatform(): 'mac' | 'windows' | 'other' {
+  if (typeof navigator !== 'undefined') {
+    if (
+      'userAgentData' in navigator &&
+      (navigator as any).userAgentData?.platform
+    ) {
+      const platform = (navigator as any).userAgentData.platform.toLowerCase();
+      if (platform.includes('mac')) return 'mac';
+      if (platform.includes('win')) return 'windows';
+    } else if (navigator.userAgent) {
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.includes('mac')) return 'mac';
+      if (ua.includes('win')) return 'windows';
+    }
+  }
+  return 'other';
+}
+
 function ActionButton({
   icon,
   label,
@@ -30,6 +49,11 @@ function ActionButton({
 }: ActionButtonProps) {
   const linkRef = useRef<HTMLAnchorElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Use modern platform detection
+  const platform = getPlatform();
+  const isMac = platform === 'mac';
+  const isWindows = platform === 'windows';
 
   const handleNavigation = () => {
     if (hardRefresh && to) {
@@ -43,7 +67,9 @@ function ActionButton({
     if (!hotkey) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key.toLowerCase() === hotkey.toLowerCase()) {
+      // Use Ctrl for Mac, Alt for Windows
+      const isHotkey = (isMac && e.ctrlKey) || (isWindows && e.altKey);
+      if (isHotkey && e.key.toLowerCase() === hotkey.toLowerCase()) {
         e.preventDefault();
         if (onClick) {
           onClick();
@@ -55,10 +81,13 @@ function ActionButton({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hotkey, onClick, to, hardRefresh]);
+  }, [hotkey, onClick, to, hardRefresh, isMac, isWindows]);
 
+  // Update tooltip label based on platform
+  let modifier = 'Ctrl';
+  if (isWindows) modifier = 'Alt';
   const tooltipLabel = hotkey
-    ? `${label} (Ctrl + ${hotkey.toUpperCase()})`
+    ? `${label} (${modifier} + ${hotkey.toUpperCase()})`
     : label;
 
   const buttonContent = <>{icon}</>;
